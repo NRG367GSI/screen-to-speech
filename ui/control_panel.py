@@ -12,7 +12,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from preset_manager import PresetManager
 from core.image_utils import pil_to_qpixmap, pil_to_base64_png, base64_png_to_pil
 from core.session import Session
-from core.ocr import recognize
+from core.ocr import recognize, recognize_all
 from core.tts import TTS, VOICES, VOICE_IDS_TO_NAMES, SPEEDS, split_text
 from ui.thumbnail import ThumbnailWidget
 from ui.frame_window import FrameWindow
@@ -31,6 +31,7 @@ class ControlPanel(QWidget):
     sig_text = pyqtSignal(str)
     sig_refresh_audio = pyqtSignal()
     sig_play_all = pyqtSignal()
+    sig_poly_done = pyqtSignal()
 
     def __init__(self, preset_manager: PresetManager):
         super().__init__()
@@ -60,7 +61,7 @@ class ControlPanel(QWidget):
 
         top = QHBoxLayout()
 
-        self.btn_toggle_frame = QPushButton("👁 Рамка")
+        self.btn_toggle_frame = QPushButton("👁")
         self.btn_toggle_frame.setStyleSheet(
             "background:#3F51B5;color:white;font-weight:bold;padding:6px;"
         )
@@ -68,23 +69,29 @@ class ControlPanel(QWidget):
         self.btn_toggle_frame.clicked.connect(self.toggle_frame)
         top.addWidget(self.btn_toggle_frame)
 
-        self.btn_full_cycle = QPushButton("🎬 Полный цикл")
-        self.btn_full_cycle.setStyleSheet(
+        self.btn_mono = QPushButton("🎬")
+        self.btn_mono.setStyleSheet(
             "background:#E91E63;color:white;font-weight:bold;padding:6px;"
         )
-        self.btn_full_cycle.setToolTip("Снять + распознать + озвучить (Ctrl+Alt+Space)")
-        self.btn_full_cycle.clicked.connect(self.full_cycle)
-        top.addWidget(self.btn_full_cycle)
+        self.btn_mono.setToolTip("Моноконвейер: снять + распознать + озвучить (Ctrl+Alt+Space)")
+        self.btn_mono.clicked.connect(self.mono_cycle)
+        top.addWidget(self.btn_mono)
 
-        self.btn_capture_only = QPushButton("📸 Только снять")
-        self.btn_capture_only.setToolTip("Снять скриншот (Ctrl+Alt+S)")
-        self.btn_capture_only.clicked.connect(self.capture_only)
-        top.addWidget(self.btn_capture_only)
+        self.btn_poly_capture = QPushButton("📸")
+        self.btn_poly_capture.setStyleSheet(
+            "background:#009688;color:white;font-weight:bold;padding:6px;"
+        )
+        self.btn_poly_capture.setToolTip("Снять в очередь поликонвейера (Ctrl+Alt+↓)")
+        self.btn_poly_capture.clicked.connect(self.poly_capture)
+        top.addWidget(self.btn_poly_capture)
 
-        self.btn_recognize_only = QPushButton("🎙 Только распознать")
-        self.btn_recognize_only.setToolTip("Распознать + озвучить (Ctrl+Alt+R)")
-        self.btn_recognize_only.clicked.connect(self.process_session)
-        top.addWidget(self.btn_recognize_only)
+        self.btn_poly_run = QPushButton("▶")
+        self.btn_poly_run.setStyleSheet(
+            "background:#FF9800;color:white;font-weight:bold;padding:6px;"
+        )
+        self.btn_poly_run.setToolTip("Запустить поликонвейер (Ctrl+Alt+→)")
+        self.btn_poly_run.clicked.connect(self.poly_run)
+        top.addWidget(self.btn_poly_run)
 
         top.addWidget(QLabel("Пресет:"))
         self.preset_box = QComboBox()
@@ -165,7 +172,20 @@ class ControlPanel(QWidget):
 
         self.audio_list = QListWidget()
         self.audio_list.setFixedHeight(90)
+        self.audio_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.audio_list.itemDoubleClicked.connect(self.play_selected)
+
+        audio_btn_row = QHBoxLayout()
+        self.btn_audio_delete = QPushButton("🗑")
+        self.btn_audio_delete.setToolTip("Удалить выбранные треки")
+        self.btn_audio_delete.clicked.connect(self.delete_selected_audio)
+        audio_btn_row.addWidget(self.btn_audio_delete)
+
+        self.btn_audio_clear = QPushButton("✕")
+        self.btn_audio_clear.setToolTip("Очистить список аудио")
+        self.btn_audio_clear.clicked.connect(self.clear_audio_list)
+        audio_btn_row.addWidget(self.btn_audio_clear)
+        audio_btn_row.addStretch()
 
         self.text_view = QTextEdit()
         self.text_view.setFixedHeight(90)
@@ -192,6 +212,7 @@ class ControlPanel(QWidget):
         layout.addWidget(self.text_view)
         layout.addWidget(QLabel("Готовые озвучки:"))
         layout.addWidget(self.audio_list)
+        layout.addLayout(audio_btn_row)
         layout.addWidget(self.session_label)
         layout.addWidget(self.hotkeys_label)
         layout.addWidget(self.status)
@@ -201,6 +222,7 @@ class ControlPanel(QWidget):
         self.sig_text.connect(self.text_view.setPlainText)
         self.sig_refresh_audio.connect(self.refresh_audio_list)
         self.sig_play_all.connect(self.play_all)
+        self.sig_poly_done.connect(self._on_poly_done)
 
         self.refresh_audio_list()
         self.setup_hotkeys()
@@ -233,9 +255,9 @@ class ControlPanel(QWidget):
             return
         try:
             hk = self.preset_manager.current.hotkeys
-            keyboard.add_hotkey(hk["full_cycle"], lambda: QTimer.singleShot(0, self.full_cycle))
-            keyboard.add_hotkey(hk["capture_only"], lambda: QTimer.singleShot(0, self.capture_only))
-            keyboard.add_hotkey(hk["recognize_only"], lambda: QTimer.singleShot(0, self.process_session))
+            keyboard.add_hotkey(hk["full_cycle"], lambda: QTimer.singleShot(0, self.mono_cycle))
+            keyboard.add_hotkey(hk["capture_only"], lambda: QTimer.singleShot(0, self.poly_capture))
+            keyboard.add_hotkey(hk["recognize_only"], lambda: QTimer.singleShot(0, self.poly_run))
             keyboard.add_hotkey(hk["toggle_frame"], lambda: QTimer.singleShot(0, self.toggle_frame))
             keyboard.add_hotkey(hk["new_session"], lambda: QTimer.singleShot(0, self.new_session))
             print("[HOTKEYS] Активированы")
@@ -350,18 +372,6 @@ class ControlPanel(QWidget):
         threading.Thread(target=self.tts.load, args=("baya", 1.0), daemon=True).start()
         self.status.setText("♻ Пресет сброшен")
 
-    def capture_only(self):
-        if not self.frame.isVisible():
-            self.frame.show()
-            QApplication.processEvents()
-        screenshot = self.frame.capture()
-        self.add_screenshot(screenshot)
-        self.status.setText(f"📸 Скриншотов: {len(self.current_session)}")
-
-    def full_cycle(self):
-        self.capture_only()
-        self.process_session()
-
     def add_screenshot(self, pil_image):
         self.image_counter += 1
         name = str(self.image_counter)
@@ -400,44 +410,6 @@ class ControlPanel(QWidget):
         self.thumbnails.clear()
         self.current_session.clear()
 
-    def process_session(self):
-        if not self.current_session:
-            QMessageBox.information(self, "Нет скриншотов", "Сначала снимите скриншот.")
-            return
-        self.status.setText("🧠 Обработка...")
-        threading.Thread(target=self._process_worker, daemon=True).start()
-
-    def _process_worker(self):
-        results = []
-        for i, item in enumerate(self.current_session, 1):
-            name = item["name"]
-            pil_image = base64_png_to_pil(item["image_b64"])
-            self.sig_status.emit(f"🧠 OCR #{name}...")
-            text = recognize(pil_image)
-            item["text"] = text
-            if text:
-                results.append(text)
-            del pil_image
-
-        if not results:
-            self.sig_status.emit("❌ Текст не распознан")
-            return
-
-        full_text = "\n\n".join(results)
-        self.sig_text.emit(full_text)
-        self.sig_status.emit(f"✅ Распознано {len(full_text)} символов. Озвучиваю...")
-
-        try:
-            header = (
-                f"# Сессия {self.session.name}\n\n"
-                f"Создано: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n---\n\n"
-            )
-            self.session.save_text(full_text, header=header)
-        except Exception as e:
-            print(f"[TEXT] Ошибка сохранения: {e}")
-
-        self.run_tts(full_text)
-
     def run_tts(self, text):
         if not self.tts.ready:
             self.sig_status.emit("⏳ TTS ещё грузится...")
@@ -445,11 +417,25 @@ class ControlPanel(QWidget):
         try:
             chunks = split_text(text)
             total = len(chunks)
+            audio_files = []
             for i, chunk in enumerate(chunks, 1):
                 filename = self.session.audio_path(i)
                 self.tts.synthesize(chunk, filename)
+                audio_files.append(os.path.basename(filename))
                 self.sig_status.emit(f"🎙 {i}/{total}")
             self.sig_refresh_audio.emit()
+
+            try:
+                if self.session.manifest_path and os.path.isfile(self.session.manifest_path):
+                    import json
+                    with open(self.session.manifest_path, "r", encoding="utf-8") as f:
+                        manifest = json.load(f)
+                    manifest["audio"] = audio_files
+                    with open(self.session.manifest_path, "w", encoding="utf-8") as f:
+                        json.dump(manifest, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                print(f"[MANIFEST] Ошибка обновления аудио: {e}")
+
             self.sig_status.emit(f"✅ Готово! Файлов: {total}")
             self.sig_play_all.emit()
         except Exception as e:
@@ -565,3 +551,100 @@ class ControlPanel(QWidget):
         self.frame.close()
         event.accept()
         QApplication.quit()
+
+    def mono_cycle(self):
+        self.poly_capture()
+        self.poly_run()
+
+    def poly_capture(self):
+        if not self.frame.isVisible():
+            self.frame.show()
+            QApplication.processEvents()
+        screenshot = self.frame.capture()
+        self.add_screenshot(screenshot)
+        self.status.setText(f"📸 Скриншотов: {len(self.current_session)}")
+
+    def poly_run(self):
+        if not self.current_session:
+            self.status.setText("Нет скриншотов")
+            return
+        self.btn_poly_run.setEnabled(False)
+        self.status.setText("🧠 Обработка...")
+        threading.Thread(target=self._poly_worker, daemon=True).start()
+
+    def _poly_worker(self):
+        images = []
+        for item in self.current_session:
+            images.append(base64_png_to_pil(item["image_b64"]))
+
+        total = len(images)
+
+        def on_progress(i, t):
+            self.sig_status.emit(f"🧠 OCR {i}/{t}...")
+
+        texts = recognize_all(images, on_progress=on_progress)
+
+        results = [t for t in texts if t.strip()]
+        if not results:
+            self.sig_status.emit("❌ Текст не распознан")
+            self.sig_poly_done.emit()
+            return
+
+        full_text = "\n\n".join(results)
+        self.sig_text.emit(full_text)
+        self.sig_status.emit(f"✅ Распознано {len(full_text)} символов. Озвучиваю...")
+
+        try:
+            header = (
+                f"# Сессия {self.session.name}\n\n"
+                f"Создано: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n---\n\n"
+            )
+            self.session.save_text(full_text, header=header)
+
+            manifest_data = {
+                "voice": self.preset_manager.current.voices["primary"],
+                "speed": self.preset_manager.current.speed,
+                "screenshots": [
+                    {
+                        "file": f"{i+1:04d}.png",
+                        "text": texts[i] if i < len(texts) else "",
+                    }
+                    for i in range(total)
+                ],
+                "audio": [],
+            }
+            self.session.save_manifest(manifest_data)
+        except Exception as e:
+            print(f"[TEXT/MANIFEST] Ошибка: {e}")
+
+        self.run_tts(full_text)
+        self.sig_poly_done.emit()
+
+    def _on_poly_done(self):
+        self.btn_poly_run.setEnabled(True)
+        self._finalize_session()
+
+    def _finalize_session(self):
+        self.clear_gallery()
+        self.text_view.clear()
+        self.image_counter = 0
+        self.session.create()
+        self.session_label.setText(f"Папка сессии: {self.session.path}")
+        self.status.setText(f"✅ Готово. Новая сессия: {self.session.short_id}")
+
+    def delete_selected_audio(self):
+        items = self.audio_list.selectedItems()
+        if not items:
+            return
+        for item in items:
+            idx = self.audio_list.row(item)
+            path = self._audio_paths()[idx] if idx < len(self._audio_paths()) else None
+            if path and os.path.isfile(path):
+                try:
+                    os.remove(path)
+                except Exception as e:
+                    print(f"[AUDIO] Не удалось удалить {path}: {e}")
+            self.audio_list.takeItem(idx)
+
+    def clear_audio_list(self):
+        self.audio_list.clear()

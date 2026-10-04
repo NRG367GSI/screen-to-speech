@@ -45,7 +45,7 @@ class Widget(QWidget):
 
         self.btn_cycle = QPushButton("▶")
         self.btn_cycle.setToolTip("Полный цикл: снять + распознать + озвучить")
-        self.btn_cycle.clicked.connect(self.parent_panel.full_cycle)
+        self.btn_cycle.clicked.connect(self.parent_panel.mono_cycle)
         row.addWidget(self.btn_cycle)
 
         self.btn_repeat = QPushButton("🔁")
