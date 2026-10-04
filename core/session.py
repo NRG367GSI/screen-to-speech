@@ -95,6 +95,8 @@ class Session:
         self.screenshots_dir = None
         self.audio_dir = None
         self.text_path = None
+        self.manifest_path = None
+        self.short_id = None
         self._counter = 0
 
     def save_manifest(self, data: dict):
