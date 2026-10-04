@@ -1,0 +1,46 @@
+{
+  "name": "default",
+  "created": "2026-10-02 15:15:08",
+  "updated": "2026-10-02 20:17:02",
+  "frame": {
+    "x": 524,
+    "y": 224,
+    "width": 892,
+    "height": 637,
+    "visible": true
+  },
+  "voices": {
+    "primary": "baya",
+    "secondary": "aidar",
+    "current": "primary"
+  },
+  "speed": 1.0,
+  "hotkeys": {
+    "full_cycle": "ctrl+alt+space",
+    "capture_only": "ctrl+alt+s",
+    "recognize_only": "ctrl+alt+r",
+    "toggle_frame": "ctrl+alt+up",
+    "next_voice": "ctrl+alt+right",
+    "prev_voice": "ctrl+alt+left",
+    "new_session": "ctrl+alt+n",
+    "open_settings": "ctrl+alt+o"
+  },
+  "widget": {
+    "x": 777,
+    "y": 243,
+    "width": 220,
+    "height": 320,
+    "large": {
+      "x": 249,
+      "y": 30
+    },
+    "medium": {
+      "x": 1157,
+      "y": 267
+    },
+    "mini": {
+      "x": 728,
+      "y": 6
+    }
+  }
+}
