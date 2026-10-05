@@ -99,9 +99,6 @@ def normalize_for_tts(text: str) -> str:
                 buffer = ""
             continue
 
-        if not any(c.isalpha() for c in stripped):
-            continue
-
         if len(stripped) < 3:
             if buffer:
                 buffer = buffer + " " + stripped
@@ -122,12 +119,11 @@ def normalize_for_tts(text: str) -> str:
     result = re.sub(r"\.{2,}", "…", result)
     result = re.sub(r"[ \t]+", " ", result)
 
-    tokens = result.split(" ")
-    tokens = [
-        t for t in tokens
-        if any(c.isalpha() for c in t) or t in {"…", "—", "–"}
-    ]
-    result = " ".join(tokens)
+    words = result.split()
+    result = " ".join(
+        w for w in words
+        if any(ch.isalpha() for ch in w) or w in {"…", "—", "–"}
+    )
 
     return result.strip()
 
