@@ -67,12 +67,26 @@ def _line_is_duplicate(line: str, accepted_lines: set, threshold: float = 0.85) 
     line_clean = _normalize_line(line)
     if not line_clean:
         return True
+
     if line_clean in accepted_lines:
         return True
+
     for prev in accepted_lines:
         ratio = difflib.SequenceMatcher(None, line_clean, prev).ratio()
         if ratio >= threshold:
             return True
+
+    if len(line_clean) >= 15:
+        words = set(line_clean.split())
+        if len(words) >= 4:
+            for prev in accepted_lines:
+                prev_words = set(prev.split())
+                if not prev_words:
+                    continue
+                common = words & prev_words
+                if len(common) / len(words) >= 0.7:
+                    return True
+
     return False
 
 
