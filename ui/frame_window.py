@@ -14,6 +14,7 @@ from PIL import Image
 
 class FrameWindow(QWidget):
     BORDER = 10
+    HANDLE_SIZE = 22
     MIN_W, MIN_H = 10, 10
 
     sig_geometry_changed = pyqtSignal()
@@ -70,10 +71,24 @@ class FrameWindow(QWidget):
         ]:
             painter.drawRect(x, y, handle, handle)
 
+        hs = self.HANDLE_SIZE
+        painter.setBrush(QColor(0, 180, 60, 240))
+        painter.setPen(QPen(QColor(255, 255, 255, 220), 1))
+        painter.drawRect(4, 4, hs, hs)
+        painter.setPen(QPen(QColor(255, 255, 255, 240), 2))
+        cx, cy = 4 + hs // 2, 4 + hs // 2
+        painter.drawLine(cx - 5, cy, cx + 5, cy)
+        painter.drawLine(cx, cy - 5, cx, cy + 5)
+
     def _edge_at(self, pos: QPoint):
         w, h = self.width(), self.height()
         m = self.BORDER
         x, y = pos.x(), pos.y()
+
+        hs = self.HANDLE_SIZE
+        if 4 <= x <= 4 + hs and 4 <= y <= 4 + hs:
+            return "move"
+
         left, right = x < m, x > w - m
         top, bottom = y < m, y > h - m
         if top and left: return "top-left"
@@ -88,6 +103,7 @@ class FrameWindow(QWidget):
 
     def _cursor_for(self, edge):
         return {
+            "move":         Qt.CursorShape.SizeAllCursor,
             "top-left":     Qt.CursorShape.SizeFDiagCursor,
             "bottom-right": Qt.CursorShape.SizeFDiagCursor,
             "top-right":    Qt.CursorShape.SizeBDiagCursor,
@@ -113,11 +129,13 @@ class FrameWindow(QWidget):
             return
         edge = self._edge_at(event.position().toPoint())
         gp = event.globalPosition().toPoint()
-        if edge is None:
+        if edge is None or edge == "move":
             self._drag_pos = gp - self.frameGeometry().topLeft()
+            event.accept()
         else:
             self._edge = edge
             self._resize_start = (gp, self.geometry())
+            event.accept()
 
     def mouseReleaseEvent(self, event):
         self._drag_pos = None
