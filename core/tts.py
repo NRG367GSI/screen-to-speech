@@ -6,7 +6,7 @@ from silero_tts.silero_tts import SileroTTS
 
 MODEL_ID = "v4_ru"
 LANGUAGE = "ru"
-SAMPLE_RATE = 48000
+SAMPLE_RATE = 24000
 DEVICE = "cpu"
 MAX_LEN = 800
 
@@ -68,8 +68,71 @@ class TTS:
                 raise RuntimeError("TTS не загружен. Вызовите load().")
             self._tts.tts(text, filename)
 
+import re
+
+import re
+
+
+def normalize_for_tts(text: str) -> str:
+    lines = text.split("\n")
+
+    joined = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        if line.endswith("-") and i + 1 < len(lines):
+            next_line = lines[i + 1].lstrip()
+            if next_line and next_line[0].islower():
+                lines[i + 1] = line[:-1] + next_line
+                i += 1
+                continue
+        joined.append(line)
+        i += 1
+
+    cleaned = []
+    buffer = ""
+    for line in joined:
+        stripped = line.strip()
+        if not stripped:
+            if buffer:
+                cleaned.append(buffer)
+                buffer = ""
+            continue
+
+        if not any(c.isalpha() for c in stripped):
+            continue
+
+        if len(stripped) < 3:
+            if buffer:
+                buffer = buffer + " " + stripped
+            else:
+                buffer = stripped
+            continue
+
+        if buffer:
+            cleaned.append(buffer)
+            buffer = ""
+        cleaned.append(stripped)
+
+    if buffer:
+        cleaned.append(buffer)
+
+    result = "\n".join(cleaned)
+
+    result = re.sub(r"\.{2,}", "…", result)
+    result = re.sub(r"[ \t]+", " ", result)
+
+    tokens = result.split(" ")
+    tokens = [
+        t for t in tokens
+        if any(c.isalpha() for c in t) or t in {"…", "—", "–"}
+    ]
+    result = " ".join(tokens)
+
+    return result.strip()
 
 def split_text(text: str, max_len: int = MAX_LEN) -> list:
+    text = normalize_for_tts(text)
     sentences = re.split(r'(?<=[.!?…])\s+', text)
     chunks, current = [], ""
     for sentence in sentences:
