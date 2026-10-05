@@ -268,16 +268,13 @@ class ControlPanel(QWidget):
         try:
             hk = self.preset_manager.current.hotkeys
 
-            def _log(name):
-                print(f"[HOTKEY] {name}")
-
-            keyboard.add_hotkey(hk["full_cycle"], lambda: (_log("full_cycle"), self.sig_mono_cycle.emit()))
-            keyboard.add_hotkey(hk["capture_only"], lambda: (_log("capture_only"), self.sig_poly_capture.emit()))
-            keyboard.add_hotkey(hk["recognize_only"], lambda: (_log("recognize_only"), self.sig_poly_run.emit()))
-            keyboard.add_hotkey(hk["poly_capture"], lambda: (_log("poly_capture"), self.sig_poly_capture.emit()))
-            keyboard.add_hotkey(hk["poly_run"], lambda: (_log("poly_run"), self.sig_poly_run.emit()))
-            keyboard.add_hotkey(hk["toggle_frame"], lambda: (_log("toggle_frame"), self.sig_toggle_frame.emit()))
-            keyboard.add_hotkey(hk["new_session"], lambda: (_log("new_session"), self.sig_new_session.emit()))
+            keyboard.add_hotkey(hk["full_cycle"], lambda: self.sig_mono_cycle.emit())
+            keyboard.add_hotkey(hk["capture_only"], lambda: self.sig_poly_capture.emit())
+            keyboard.add_hotkey(hk["recognize_only"], lambda: self.sig_poly_run.emit())
+            keyboard.add_hotkey(hk["poly_capture"], lambda: self.sig_poly_capture.emit())
+            keyboard.add_hotkey(hk["poly_run"], lambda: self.sig_poly_run.emit())
+            keyboard.add_hotkey(hk["toggle_frame"], lambda: self.sig_toggle_frame.emit())
+            keyboard.add_hotkey(hk["new_session"], lambda: self.sig_new_session.emit())
             print("[HOTKEYS] Активированы")
         except Exception as e:
             print(f"[HOTKEYS] Ошибка: {e}")
