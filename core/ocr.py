@@ -1,7 +1,7 @@
 import re
 import base64
 import requests
-
+import difflib
 from PIL import Image
 
 from core.image_utils import prepare_image_for_sending
@@ -52,38 +52,63 @@ def recognize(pil_image: Image.Image, timeout: int = 180) -> str:
         return ""
 
 
-import difflib
+def _split_lines(text: str) -> list:
+    return [line.strip() for line in text.split("\n") if line.strip()]
 
 
-def _is_duplicate(new_text: str, previous_texts: list, threshold: float = 0.9) -> bool:
-    if not new_text.strip():
+def _normalize_line(line: str) -> str:
+    line = line.lower().strip()
+    line = re.sub(r"[^\w\s]", "", line)
+    line = re.sub(r"\s+", " ", line)
+    return line
+
+
+def _line_is_duplicate(line: str, accepted_lines: set, threshold: float = 0.85) -> bool:
+    line_clean = _normalize_line(line)
+    if not line_clean:
         return True
-    new_clean = new_text.strip().lower()
-    for prev in previous_texts:
-        if not prev.strip():
-            continue
-        prev_clean = prev.strip().lower()
-        ratio = difflib.SequenceMatcher(None, new_clean, prev_clean).ratio()
+    if line_clean in accepted_lines:
+        return True
+    for prev in accepted_lines:
+        ratio = difflib.SequenceMatcher(None, line_clean, prev).ratio()
         if ratio >= threshold:
             return True
     return False
 
 
-def recognize_all(images: list, on_progress=None, dedup_threshold: float = 0.9) -> list:
+def recognize_all(images: list, on_progress=None, dedup_threshold: float = 0.85) -> list:
     results = []
-    accepted = []
+    accepted_lines = set()
     total = len(images)
+
     for i, img in enumerate(images, 1):
         if on_progress:
             on_progress(i, total)
+
         text = recognize(img)
         if not text.strip():
             results.append("")
             continue
-        if _is_duplicate(text, accepted, threshold=dedup_threshold):
-            print(f"[OCR] Дубликат пропущен: {text[:60]}...")
+
+        lines = _split_lines(text)
+        new_lines = []
+        dup_count = 0
+
+        for line in lines:
+            if _line_is_duplicate(line, accepted_lines, threshold=dedup_threshold):
+                dup_count += 1
+                continue
+            new_lines.append(line)
+            accepted_lines.add(_normalize_line(line))
+
+        if not new_lines:
+            print(f"[OCR] Скрин {i}: все строки дубликаты ({dup_count})")
             results.append("")
             continue
-        accepted.append(text)
-        results.append(text)
+
+        if dup_count > 0:
+            print(f"[OCR] Скрин {i}: пропущено дубликатов {dup_count}, новых строк {len(new_lines)}")
+
+        results.append("\n".join(new_lines))
+
     return results
