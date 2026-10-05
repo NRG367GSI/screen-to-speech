@@ -258,6 +258,8 @@ class ControlPanel(QWidget):
             keyboard.add_hotkey(hk["full_cycle"], lambda: QTimer.singleShot(0, self.mono_cycle))
             keyboard.add_hotkey(hk["capture_only"], lambda: QTimer.singleShot(0, self.poly_capture))
             keyboard.add_hotkey(hk["recognize_only"], lambda: QTimer.singleShot(0, self.poly_run))
+            keyboard.add_hotkey(hk["poly_capture"], lambda: QTimer.singleShot(0, self.poly_capture))
+            keyboard.add_hotkey(hk["poly_run"], lambda: QTimer.singleShot(0, self.poly_run))
             keyboard.add_hotkey(hk["toggle_frame"], lambda: QTimer.singleShot(0, self.toggle_frame))
             keyboard.add_hotkey(hk["new_session"], lambda: QTimer.singleShot(0, self.new_session))
             print("[HOTKEYS] Активированы")

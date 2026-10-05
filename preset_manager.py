@@ -27,9 +27,9 @@ DEFAULT_HOTKEYS = {
     "full_cycle": "ctrl+alt+space",
     "capture_only": "ctrl+alt+s",
     "recognize_only": "ctrl+alt+r",
+    "poly_capture": "ctrl+alt+down",
+    "poly_run": "ctrl+alt+right",
     "toggle_frame": "ctrl+alt+up",
-    "next_voice": "ctrl+alt+right",
-    "prev_voice": "ctrl+alt+left",
     "new_session": "ctrl+alt+n",
     "open_settings": "ctrl+alt+o",
 }
