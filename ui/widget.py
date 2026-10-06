@@ -3,9 +3,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
-
-WIDGET_W = 220
-WIDGET_H = 56
+WIDGET_W = 120
+WIDGET_H = 45
 
 
 class Widget(QWidget):
@@ -41,21 +40,29 @@ class Widget(QWidget):
 
         self.btn_frame = QPushButton("👁")
         self.btn_frame.setToolTip("Рамка захвата (Ctrl+Alt+Up)")
+        self.btn_frame.setFixedSize(28, 24)
+        self.btn_frame.setStyleSheet("font-size: 14px; padding: 0;")
         self.btn_frame.clicked.connect(self.parent_panel.toggle_frame)
         row.addWidget(self.btn_frame)
 
         self.btn_capture = QPushButton("📸")
         self.btn_capture.setToolTip("Снять в очередь (Ctrl+Alt+↓)")
+        self.btn_capture.setFixedSize(28, 24)
+        self.btn_capture.setStyleSheet("font-size: 14px; padding: 0;")
         self.btn_capture.clicked.connect(self.parent_panel.poly_capture)
         row.addWidget(self.btn_capture)
 
         self.btn_run = QPushButton("▶")
         self.btn_run.setToolTip("Запустить поликонвейер (Ctrl+Alt+→)")
+        self.btn_run.setFixedSize(28, 24)
+        self.btn_run.setStyleSheet("font-size: 14px; padding: 0;")
         self.btn_run.clicked.connect(self.parent_panel.poly_run)
         row.addWidget(self.btn_run)
 
         self.btn_expand = QPushButton("⚙")
         self.btn_expand.setToolTip("Развернуть настройки")
+        self.btn_expand.setFixedSize(28, 24)
+        self.btn_expand.setStyleSheet("font-size: 14px; padding: 0;")
         self.btn_expand.clicked.connect(self.parent_panel.expand_from_widget)
         row.addWidget(self.btn_expand)
 
