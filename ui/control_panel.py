@@ -323,6 +323,7 @@ class ControlPanel(QWidget):
         self.session.create()
         self.session_label.setText(f"Папка сессии: {self.session.path}")
         self.status.setText(f"🆕 Новая сессия: {self.session.path}")
+        self._update_widget_shots()
 
     def open_session_folder(self):
         self.session.open_folder()
@@ -578,6 +579,11 @@ class ControlPanel(QWidget):
         screenshot = self.frame.capture()
         self.add_screenshot(screenshot)
         self.status.setText(f"📸 Скриншотов: {len(self.current_session)}")
+        self._update_widget_shots()
+
+    def _update_widget_shots(self):
+        if hasattr(self, "widget") and self.widget is not None:
+            self.widget.set_shots_count(len(self.current_session))
 
     def poly_run(self):
         if not self.current_session:
@@ -646,6 +652,7 @@ class ControlPanel(QWidget):
         self.session.create()
         self.session_label.setText(f"Папка сессии: {self.session.path}")
         self.status.setText(f"✅ Готово. Новая сессия: {self.session.short_id}")
+        self._update_widget_shots()
 
     def delete_selected_audio(self):
         items = self.audio_list.selectedItems()

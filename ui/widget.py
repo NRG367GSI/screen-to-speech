@@ -1,10 +1,10 @@
 from PyQt6.QtWidgets import (
-    QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QApplication
+    QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 
 
-WIDGET_W = 260
+WIDGET_W = 220
 WIDGET_H = 56
 
 
@@ -24,6 +24,7 @@ class Widget(QWidget):
         self.setFixedSize(WIDGET_W, WIDGET_H)
 
         self._drag_pos = None
+        self._shots_count = 0
 
         self._build_ui()
         self._restore_pos()
@@ -39,24 +40,19 @@ class Widget(QWidget):
         row.setSpacing(2)
 
         self.btn_frame = QPushButton("👁")
-        self.btn_frame.setToolTip("Рамка захвата")
+        self.btn_frame.setToolTip("Рамка захвата (Ctrl+Alt+Up)")
         self.btn_frame.clicked.connect(self.parent_panel.toggle_frame)
         row.addWidget(self.btn_frame)
 
-        self.btn_cycle = QPushButton("▶")
-        self.btn_cycle.setToolTip("Полный цикл: снять + распознать + озвучить")
-        self.btn_cycle.clicked.connect(self.parent_panel.mono_cycle)
-        row.addWidget(self.btn_cycle)
+        self.btn_capture = QPushButton("📸")
+        self.btn_capture.setToolTip("Снять в очередь (Ctrl+Alt+↓)")
+        self.btn_capture.clicked.connect(self.parent_panel.poly_capture)
+        row.addWidget(self.btn_capture)
 
-        self.btn_repeat = QPushButton("🔁")
-        self.btn_repeat.setToolTip("Повторить озвучку текущей сессии")
-        self.btn_repeat.clicked.connect(self.parent_panel.play_all)
-        row.addWidget(self.btn_repeat)
-
-        self.btn_new = QPushButton("🆕")
-        self.btn_new.setToolTip("Новая сессия")
-        self.btn_new.clicked.connect(self.parent_panel.new_session)
-        row.addWidget(self.btn_new)
+        self.btn_run = QPushButton("▶")
+        self.btn_run.setToolTip("Запустить поликонвейер (Ctrl+Alt+→)")
+        self.btn_run.clicked.connect(self.parent_panel.poly_run)
+        row.addWidget(self.btn_run)
 
         self.btn_expand = QPushButton("⚙")
         self.btn_expand.setToolTip("Развернуть настройки")
@@ -65,15 +61,16 @@ class Widget(QWidget):
 
         layout.addLayout(row)
 
-        self.status = QLabel("Готов")
+        self.status = QLabel("📸 0 | Готов")
         self.status.setStyleSheet("color:#333; font-size:10px;")
         self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status)
 
         self.setToolTip(
             "Ctrl+Alt+Space — полный цикл\n"
+            "Ctrl+Alt+↓ — снять в очередь\n"
+            "Ctrl+Alt+→ — запустить поликонвейер\n"
             "Ctrl+Alt+Up — рамка\n"
-            "Ctrl+Alt+←/→ — голос\n"
             "Ctrl+Alt+N — новая сессия"
         )
 
@@ -103,11 +100,20 @@ class Widget(QWidget):
         if hasattr(self, "parent_panel"):
             self._save_pos()
 
+    def set_shots_count(self, count: int):
+        self._shots_count = count
+        self._update_status(self._last_status if hasattr(self, "_last_status") else "Готов")
+
+    def _update_status(self, text: str):
+        self.status.setText(f"📸 {self._shots_count} | {text}")
+
     def _on_status(self, text: str):
-        self.status.setText(text)
+        self._last_status = text
+        self._update_status(text)
 
     def update_status(self, text: str):
-        self.status.setText(text)
+        self._last_status = text
+        self._update_status(text)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
