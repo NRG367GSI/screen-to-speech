@@ -24,14 +24,12 @@ DEFAULT_VOICES = {
 DEFAULT_SPEED = 1.0
 
 DEFAULT_HOTKEYS = {
-    "full_cycle": "ctrl+alt+space",
-    "capture_only": "ctrl+alt+s",
-    "recognize_only": "ctrl+alt+r",
-    "poly_capture": "ctrl+alt+down",
-    "poly_run": "ctrl+alt+right",
-    "toggle_frame": "ctrl+alt+up",
-    "new_session": "ctrl+alt+n",
-    "open_settings": "ctrl+alt+o",
+    "mono_cycle":   "alt+shift+space",
+    "poly_capture": "alt+shift+down",
+    "poly_run":     "alt+shift+right",
+    "toggle_frame": "alt+shift+up",
+    "new_session":  "alt+shift+n",
+    "open_settings": "alt+shift+o",
 }
 
 DEFAULT_WIDGET = {
@@ -41,6 +39,12 @@ DEFAULT_WIDGET = {
     "height": 320,
 }
 
+DEFAULT_TRANSLATE = {
+    "enabled": False,
+    "engine": "none",       # "none" | "lmstudio" | "argos"
+    "target_lang": "ru",
+    "source_lang": "auto",
+}
 
 @dataclass
 class Preset:
@@ -53,6 +57,7 @@ class Preset:
     speed: float = DEFAULT_SPEED
     hotkeys: dict = field(default_factory=lambda: dict(DEFAULT_HOTKEYS))
     widget: dict = field(default_factory=lambda: dict(DEFAULT_WIDGET))
+    translate: dict = field(default_factory=lambda: dict(DEFAULT_TRANSLATE))
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -68,6 +73,7 @@ class Preset:
         p.speed = data.get("speed", DEFAULT_SPEED)
         p.hotkeys = {**DEFAULT_HOTKEYS, **data.get("hotkeys", {})}
         p.widget = {**DEFAULT_WIDGET, **data.get("widget", {})}
+        p.translate = {**DEFAULT_TRANSLATE, **data.get("translate", {})}
         return p
 
 

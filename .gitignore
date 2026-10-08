@@ -7,3 +7,4 @@ presets/
 logs/
 .vscode/
 *.log
+snapshot.md

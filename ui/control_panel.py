@@ -266,16 +266,30 @@ class ControlPanel(QWidget):
             print("[HOTKEYS] keyboard не установлен")
             return
         try:
-            hk = self.preset_manager.current.hotkeys
+            os.makedirs("logs", exist_ok=True)
+            log_path = os.path.join("logs", "hotkeys.log")
 
-            keyboard.add_hotkey(hk["full_cycle"], lambda: self.sig_mono_cycle.emit())
-            keyboard.add_hotkey(hk["capture_only"], lambda: self.sig_poly_capture.emit())
-            keyboard.add_hotkey(hk["recognize_only"], lambda: self.sig_poly_run.emit())
-            keyboard.add_hotkey(hk["poly_capture"], lambda: self.sig_poly_capture.emit())
-            keyboard.add_hotkey(hk["poly_run"], lambda: self.sig_poly_run.emit())
-            keyboard.add_hotkey(hk["toggle_frame"], lambda: self.sig_toggle_frame.emit())
-            keyboard.add_hotkey(hk["new_session"], lambda: self.sig_new_session.emit())
-            print("[HOTKEYS] Активированы")
+            _last_fire = {}
+
+            def _log_and_emit(name, signal):
+                now = time.monotonic()
+                if now - _last_fire.get(name, 0) < 0.4:
+                    return
+                _last_fire[name] = now
+                try:
+                    with open(log_path, "a", encoding="utf-8") as f:
+                        f.write(f"{time.strftime('%H:%M:%S')} — {name}\n")
+                except Exception:
+                    pass
+                signal.emit()
+
+            hk = self.preset_manager.current.hotkeys
+            keyboard.add_hotkey(hk["mono_cycle"],   lambda: _log_and_emit("mono_cycle",   self.sig_mono_cycle))
+            keyboard.add_hotkey(hk["poly_capture"], lambda: _log_and_emit("poly_capture", self.sig_poly_capture))
+            keyboard.add_hotkey(hk["poly_run"],     lambda: _log_and_emit("poly_run",     self.sig_poly_run))
+            keyboard.add_hotkey(hk["toggle_frame"], lambda: _log_and_emit("toggle_frame", self.sig_toggle_frame))
+            keyboard.add_hotkey(hk["new_session"],  lambda: _log_and_emit("new_session",  self.sig_new_session))
+            print("[HOTKEYS] Активированы (alt+shift+*)")
         except Exception as e:
             print(f"[HOTKEYS] Ошибка: {e}")
 
