@@ -17,6 +17,7 @@ from core.tts import TTS, VOICES, VOICE_IDS_TO_NAMES, SPEEDS, split_text
 from ui.thumbnail import ThumbnailWidget
 from ui.frame_window import FrameWindow
 from ui.widget import Widget
+from ui.hotkeys import HotkeyManager
 
 try:
     import keyboard
@@ -71,7 +72,7 @@ class ControlPanel(QWidget):
         self.btn_toggle_frame.setStyleSheet(
             "background:#3F51B5;color:white;font-weight:bold;padding:6px;"
         )
-        self.btn_toggle_frame.setToolTip("Показать/скрыть рамку (Ctrl+Alt+Up)")
+        self.btn_toggle_frame.setToolTip("Показать/скрыть рамку (Ctrl+Shift+Up)")
         self.btn_toggle_frame.clicked.connect(self.toggle_frame)
         top.addWidget(self.btn_toggle_frame)
 
@@ -79,7 +80,7 @@ class ControlPanel(QWidget):
         self.btn_mono.setStyleSheet(
             "background:#E91E63;color:white;font-weight:bold;padding:6px;"
         )
-        self.btn_mono.setToolTip("Моноконвейер: снять + распознать + озвучить (Ctrl+Alt+Space)")
+        self.btn_mono.setToolTip("Моноконвейер: снять + распознать + озвучить (Ctrl+Shift+M)")
         self.btn_mono.clicked.connect(self.mono_cycle)
         top.addWidget(self.btn_mono)
 
@@ -87,7 +88,7 @@ class ControlPanel(QWidget):
         self.btn_poly_capture.setStyleSheet(
             "background:#009688;color:white;font-weight:bold;padding:6px;"
         )
-        self.btn_poly_capture.setToolTip("Снять в очередь поликонвейера (Ctrl+Alt+↓)")
+        self.btn_poly_capture.setToolTip("Снять в очередь поликонвейера (Ctrl+Shift+↓)")
         self.btn_poly_capture.clicked.connect(self.poly_capture)
         top.addWidget(self.btn_poly_capture)
 
@@ -95,7 +96,7 @@ class ControlPanel(QWidget):
         self.btn_poly_run.setStyleSheet(
             "background:#FF9800;color:white;font-weight:bold;padding:6px;"
         )
-        self.btn_poly_run.setToolTip("Запустить поликонвейер (Ctrl+Alt+→)")
+        self.btn_poly_run.setToolTip("Запустить поликонвейер (Ctrl+Shift+→)")
         self.btn_poly_run.clicked.connect(self.poly_run)
         top.addWidget(self.btn_poly_run)
 
@@ -140,7 +141,7 @@ class ControlPanel(QWidget):
         self.btn_new_session.setStyleSheet(
             "background:#009688;color:white;font-weight:bold;padding:8px;"
         )
-        self.btn_new_session.setToolTip("Новая сессия (Ctrl+Alt+N)")
+        self.btn_new_session.setToolTip("Новая сессия (Ctrl+Shift+N)")
         self.btn_new_session.clicked.connect(self.new_session)
         bottom.addWidget(self.btn_new_session)
 
@@ -201,9 +202,9 @@ class ControlPanel(QWidget):
         self.session_label.setStyleSheet("color: gray;")
 
         self.hotkeys_label = QLabel(
-            "Ctrl+Alt+Space — полный цикл  |  Ctrl+Alt+S — снять  |  "
-            "Ctrl+Alt+R — распознать  |  Ctrl+Alt+Up — рамка  |  "
-            "Ctrl+Alt+N — новая сессия"
+            "Ctrl+Shift+M — полный цикл  |  Ctrl+Shift+↓ — снять  |  "
+            "Ctrl+Shift+→ — распознать  |  Ctrl+Shift+↑ — рамка  |  "
+            "Ctrl+Shift+N — новая сессия"
         )
         self.hotkeys_label.setStyleSheet("color: #555; font-style: italic;")
 
@@ -236,14 +237,24 @@ class ControlPanel(QWidget):
         self.sig_toggle_frame.connect(self.toggle_frame)
         self.sig_new_session.connect(self.new_session)
 
+        self.hotkey_manager = HotkeyManager(self)
+        self.hotkey_manager.fired.connect(self._on_hotkey_fired)
+        self.hotkey_manager.start()
+
         self.refresh_audio_list()
-        self.setup_hotkeys()
 
         threading.Thread(
             target=self.tts.load,
             args=(preset_manager.current.voices["primary"], preset_manager.current.speed),
             daemon=True
         ).start()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not getattr(self, "_hotkeys_ready", False):
+            self._hotkeys_ready = True
+            print(f"[HOTKEYS] showEvent: winId={int(self.winId())}")
+            self.setup_hotkeys()
 
     def _forward_status_to_widget(self, text: str):
         if hasattr(self, "widget") and self.widget is not None:
@@ -262,45 +273,44 @@ class ControlPanel(QWidget):
         self.activateWindow()
 
     def setup_hotkeys(self):
-        if not KEYBOARD_OK:
-            print("[HOTKEYS] keyboard не установлен")
-            return
         try:
             os.makedirs("logs", exist_ok=True)
-            log_path = os.path.join("logs", "hotkeys.log")
-
-            _last_fire = {}
-
-            def _log_and_emit(name, signal):
-                now = time.monotonic()
-                if now - _last_fire.get(name, 0) < 0.4:
-                    return
-                _last_fire[name] = now
-                try:
-                    with open(log_path, "a", encoding="utf-8") as f:
-                        f.write(f"{time.strftime('%H:%M:%S')} — {name}\n")
-                except Exception:
-                    pass
-                signal.emit()
+            self._hotkey_log = os.path.join("logs", "hotkeys.log")
 
             hk = self.preset_manager.current.hotkeys
-            keyboard.add_hotkey(hk["mono_cycle"],   lambda: _log_and_emit("mono_cycle",   self.sig_mono_cycle))
-            keyboard.add_hotkey(hk["poly_capture"], lambda: _log_and_emit("poly_capture", self.sig_poly_capture))
-            keyboard.add_hotkey(hk["poly_run"],     lambda: _log_and_emit("poly_run",     self.sig_poly_run))
-            keyboard.add_hotkey(hk["toggle_frame"], lambda: _log_and_emit("toggle_frame", self.sig_toggle_frame))
-            keyboard.add_hotkey(hk["new_session"],  lambda: _log_and_emit("new_session",  self.sig_new_session))
-            print("[HOTKEYS] Активированы (alt+shift+*)")
+            self.hotkey_manager.register("mono_cycle",   hk["mono_cycle"])
+            self.hotkey_manager.register("poly_capture", hk["poly_capture"])
+            self.hotkey_manager.register("poly_run",     hk["poly_run"])
+            self.hotkey_manager.register("toggle_frame", hk["toggle_frame"])
+            self.hotkey_manager.register("new_session",  hk["new_session"])
         except Exception as e:
             print(f"[HOTKEYS] Ошибка: {e}")
 
-    def re_register_hotkeys(self):
-        if not KEYBOARD_OK:
-            return
+    def _on_hotkey_fired(self, name: str):
+        print(f"[HOTKEY-FIRED] {name}")
         try:
-            keyboard.unhook_all()
-            self.setup_hotkeys()
-        except Exception as e:
-            print(f"[HOTKEYS] Ошибка перерегистрации: {e}")
+            with open(self._hotkey_log, "a", encoding="utf-8") as f:
+                f.write(f"{time.strftime('%H:%M:%S')} — {name}\n")
+        except Exception:
+            pass
+
+        sig_map = {
+            "mono_cycle":   self.sig_mono_cycle,
+            "poly_capture": self.sig_poly_capture,
+            "poly_run":     self.sig_poly_run,
+            "toggle_frame": self.sig_toggle_frame,
+            "new_session":  self.sig_new_session,
+        }
+        sig = sig_map.get(name)
+        if sig:
+            sig.emit()
+
+    def re_register_hotkeys(self):
+        try:
+            self.hotkey_manager.unregister_all()
+        except Exception:
+            pass
+        self.setup_hotkeys()
 
     def toggle_frame(self):
         if self.frame.isVisible():
@@ -539,16 +549,15 @@ class ControlPanel(QWidget):
 
     def quit_app(self):
         try:
-            if KEYBOARD_OK:
-                keyboard.unhook_all()
-        except Exception:
-            pass
-        try:
             self.preset_manager.save_current()
         except Exception:
             pass
         try:
             self.stop_playback()
+        except Exception:
+            pass
+        try:
+            self.hotkey_manager.stop()
         except Exception:
             pass
         try:
@@ -566,12 +575,11 @@ class ControlPanel(QWidget):
 
     def closeEvent(self, event):
         try:
-            if KEYBOARD_OK:
-                keyboard.unhook_all()
+            self.preset_manager.save_current()
         except Exception:
             pass
         try:
-            self.preset_manager.save_current()
+            self.hotkey_manager.stop()
         except Exception:
             pass
         try:

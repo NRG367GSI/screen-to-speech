@@ -24,12 +24,12 @@ DEFAULT_VOICES = {
 DEFAULT_SPEED = 1.0
 
 DEFAULT_HOTKEYS = {
-    "mono_cycle":   "alt+shift+space",
-    "poly_capture": "alt+shift+down",
-    "poly_run":     "alt+shift+right",
-    "toggle_frame": "alt+shift+up",
-    "new_session":  "alt+shift+n",
-    "open_settings": "alt+shift+o",
+    "mono_cycle":   "ctrl+shift+m",
+    "poly_capture": "ctrl+shift+down",
+    "poly_run":     "ctrl+shift+right",
+    "toggle_frame": "ctrl+shift+up",
+    "new_session":  "ctrl+shift+n",
+    "open_settings": "ctrl+shift+o",
 }
 
 DEFAULT_WIDGET = {
@@ -41,10 +41,11 @@ DEFAULT_WIDGET = {
 
 DEFAULT_TRANSLATE = {
     "enabled": False,
-    "engine": "none",       # "none" | "lmstudio" | "argos"
+    "engine": "none",
     "target_lang": "ru",
     "source_lang": "auto",
 }
+
 
 @dataclass
 class Preset:
