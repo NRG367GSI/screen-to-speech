@@ -1,26 +1,31 @@
 # Changelog
 
-## [Unreleased] — feature/ui-aimp
+## [Unreleased] — main (после ui-aimp)
 
 ### Добавлено
 - **Глобальные хоткеи через WinAPI `RegisterHotKey`** (`ui/hotkeys.py`):
   - Работает поверх игр и приложений, не требует фокуса.
   - Отдельный поток: `RegisterHotKey` + `GetMessageW` в одном потоке.
   - Сигнал `fired(name)` → `pyqtSignal` в GUI-поток.
-- **Новая схема хоткеев:** `Ctrl+Shift+M` (моно), `Ctrl+Shift+↓` (снять), `Ctrl+Shift+→` (поли), `Ctrl+Shift+↑` (рамка), `Ctrl+Shift+N` (сессия), `Ctrl+Shift+O` (настройки).
+- **Новая схема хоткеев:** `Ctrl+Shift+M` (моно), `Ctrl+Shift+↓` (снять), `Ctrl+Shift+→` (поли), `Ctrl+Shift+↑` (рамка), `Ctrl+Shift+N` (сессия), `Ctrl+Shift+O` (настройки), `Ctrl+Shift+W` (показать/скрыть окно).
 - **Лог хоткеев** — `logs/hotkeys.log`.
 - **Поле `translate`** в `Preset` — задел под локальный переводчик.
+- **`core/lmstudio_control.py`** — автозапуск сервера LM Studio, автозагрузка модели с `--identifier`, выгрузка при выходе.
 - **`tools/snapshot.py`** — снимок кода в `snapshot.md` для переезда между сессиями.
-- **`JOURNAL.md`** — краткий журнал сессий (по одной строке на шаг).
+- **`JOURNAL.md`** — краткий журнал сессий.
+- **Silero TTS `v5_5_ru`** — автоматические ударения в омографах, скорость выше.
+- Хоткей `Ctrl+Shift+W` — показать/скрыть главное окно.
 
 ### Изменено
 - `keyboard` → `RegisterHotKey` (WinAPI). `keyboard` больше не используется.
 - Хоткеи ушли с `Ctrl+Alt+*` (конфликт с Punto Switcher) и `Alt+Shift+*` (конфликт со сменой языка) на `Ctrl+Shift+*`.
 - Убраны дубли хоткеев (`capture_only`, `recognize_only`).
+- `MODEL_ID` в `core/tts.py`: `v4_ru` → `v5_5_ru`.
+- `main.py`: интеграция `LMStudioControl` (старт/стоп сервера и модели).
 
 ### Удалено
 - `test_hotkey.py`, `test_hotkeys2.py` — диагностические скрипты.
-- Ветка `feature/conveyors` — влита в `main`.
+- Ветки `feature/conveyors`, `feature/player`, `feature/ui-aimp` — влиты в `main`.
 
 ## [v2.1] — feature/player → main
 
