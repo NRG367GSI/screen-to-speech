@@ -30,6 +30,7 @@ DEFAULT_HOTKEYS = {
     "toggle_frame": "ctrl+shift+up",
     "new_session":  "ctrl+shift+n",
     "open_settings": "ctrl+shift+o",
+    "toggle_window": "ctrl+shift+w",
 }
 
 DEFAULT_WIDGET = {

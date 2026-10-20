@@ -39,6 +39,7 @@ class ControlPanel(QWidget):
     sig_poly_run = pyqtSignal()
     sig_toggle_frame = pyqtSignal()
     sig_new_session = pyqtSignal()
+    sig_toggle_window = pyqtSignal()
 
     def __init__(self, preset_manager: PresetManager):
         super().__init__()
@@ -236,6 +237,7 @@ class ControlPanel(QWidget):
         self.sig_poly_run.connect(self.poly_run)
         self.sig_toggle_frame.connect(self.toggle_frame)
         self.sig_new_session.connect(self.new_session)
+        self.sig_toggle_window.connect(self.toggle_window)
 
         self.hotkey_manager = HotkeyManager(self)
         self.hotkey_manager.fired.connect(self._on_hotkey_fired)
@@ -283,6 +285,7 @@ class ControlPanel(QWidget):
             self.hotkey_manager.register("poly_run",     hk["poly_run"])
             self.hotkey_manager.register("toggle_frame", hk["toggle_frame"])
             self.hotkey_manager.register("new_session",  hk["new_session"])
+            self.hotkey_manager.register("toggle_window", hk["toggle_window"])
         except Exception as e:
             print(f"[HOTKEYS] Ошибка: {e}")
 
@@ -300,6 +303,7 @@ class ControlPanel(QWidget):
             "poly_run":     self.sig_poly_run,
             "toggle_frame": self.sig_toggle_frame,
             "new_session":  self.sig_new_session,
+            "toggle_window": self.sig_toggle_window,
         }
         sig = sig_map.get(name)
         if sig:
@@ -322,6 +326,15 @@ class ControlPanel(QWidget):
             self.frame.activateWindow()
             self.preset_manager.current.frame["visible"] = True
         self.preset_manager.save_current()
+
+    def toggle_window(self):
+        if self.isVisible() and not self.isMinimized():
+            self.hide()
+        else:
+            self.show()
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
 
     def _save_frame_geometry(self):
         geo = self.frame.current_geometry_dict()

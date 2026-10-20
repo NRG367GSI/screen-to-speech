@@ -4,7 +4,7 @@ import threading
 from silero_tts.silero_tts import SileroTTS
 
 
-MODEL_ID = "v4_ru"
+MODEL_ID = "v5_5_ru"
 LANGUAGE = "ru"
 SAMPLE_RATE = 24000
 DEVICE = "cpu"
@@ -49,13 +49,27 @@ class TTS:
                     model_id=MODEL_ID, language=LANGUAGE,
                     speaker=self.speaker, sample_rate=SAMPLE_RATE,
                     device=DEVICE, speech_rate=self.speed,
+                    put_accent=True,
+                    put_yo=True,
+                    put_stress_homo=True,
+                    put_yo_homo=True,
                 )
             except TypeError:
-                self._tts = SileroTTS(
-                    model_id=MODEL_ID, language=LANGUAGE,
-                    speaker=self.speaker, sample_rate=SAMPLE_RATE,
-                    device=DEVICE,
-                )
+                # fallback для старых версий silero-tts, где нет флагов омографов
+                try:
+                    self._tts = SileroTTS(
+                        model_id=MODEL_ID, language=LANGUAGE,
+                        speaker=self.speaker, sample_rate=SAMPLE_RATE,
+                        device=DEVICE, speech_rate=self.speed,
+                        put_accent=True,
+                        put_yo=True,
+                    )
+                except TypeError:
+                    self._tts = SileroTTS(
+                        model_id=MODEL_ID, language=LANGUAGE,
+                        speaker=self.speaker, sample_rate=SAMPLE_RATE,
+                        device=DEVICE,
+                    )
             print(f"[TTS] Готов: {self.speaker}, скорость {self.speed}")
 
     @property
